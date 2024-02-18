@@ -1,0 +1,9 @@
+{
+  "name": "quarrot",
+  "version-string": "0.0.1",
+  "dependencies": [
+    "openmesh",
+    "glm",
+    "catch2"
+  ]
+}

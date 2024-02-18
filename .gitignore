@@ -1,0 +1,16 @@
+.vscode/
+.cache/
+build/
+imgui.ini
+scripts/__pycache__/
+temp/
+compile_commands.json
+launch.json
+vcpkg/
+localAssets/
+external/
+
+Debug/
+Release/
+RelWithDebInfo/
+Testing/
