@@ -66,13 +66,20 @@ static void calc_beta(Mesh& mesh, const OpenMesh::EPropHandleT<double>& beta)
     }
     std::array<double, 4> alphas;
     for (size_t i = 0; i < 4; ++i) {
-      const auto& a  = points[i];
-      const auto& b  = points[(i + 1) % 4];
-      const auto& c  = points[(i + 2) % 4];
-      auto        ca = a - c;
-      auto        cb = b - c;
-      alphas[i]      = 2. * SQRT_3 * glm::length(glm::cross(ca, cb)) /
-                  (glm::length2(ca) + glm::length2(b - a) + glm::length2(cb));
+      const auto& a     = points[i];
+      const auto& b     = points[(i + 1) % 4];
+      const auto& c     = points[(i + 2) % 4];
+      auto        ca    = a - c;
+      auto        cb    = b - c;
+      glm::dvec3  norm  = glm::cross(ca, cb);
+      double      dot   = glm::length(norm);
+      glm::dvec3  enorm = mesh.normal(mesh.face_handle(mesh.halfedge_handle(eh, 0))) +
+                         mesh.normal(mesh.face_handle(mesh.halfedge_handle(eh, 1)));
+      if (glm::dot(enorm, norm) < 0.) {
+        dot = -dot;
+      }
+      alphas[i] =
+        2. * SQRT_3 * dot / (glm::length2(ca) + glm::length2(b - a) + glm::length2(cb));
     }
     std::sort(alphas.begin(), alphas.end());
     mesh.property(beta, eh) = (alphas[0] * alphas[1]) / (alphas[2] * alphas[3]);

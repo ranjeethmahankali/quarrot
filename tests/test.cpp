@@ -17,7 +17,7 @@ TEST_CASE("Pair triangles", "[pair-triangles]")
   size_t before = mesh.n_faces();
   std::cout << "Before: V " << mesh.n_vertices() << "; E " << mesh.n_edges() << "; F "
             << mesh.n_faces() << std::endl;
-  pair_triangles(mesh);
+  pair_triangles(mesh, 0.1);
   std::cout << "After: V " << mesh.n_vertices() << "; E " << mesh.n_edges() << "; F "
             << mesh.n_faces() << std::endl;
   REQUIRE(mesh.n_faces() < before);
