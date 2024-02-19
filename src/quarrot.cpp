@@ -120,6 +120,10 @@ static void calc_beta_star(Mesh&                                 mesh,
 
 void pair_triangles(Mesh& mesh, double gamma)
 {
+  /*
+   Lo, S. H.. “Generating quadrilateral elements on plane and over curved surfaces.”
+   Computers & Structures 31 (1989): 421-426.
+  */
   mesh.update_face_normals();
   mark_fixed_edges(mesh);
   OpenMesh::EPropHandleT<double> beta, beta_star;
