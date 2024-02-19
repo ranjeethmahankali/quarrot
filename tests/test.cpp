@@ -9,7 +9,7 @@
 
 using namespace quarrot;
 
-TEST_CASE("Pair triangles", "[pair-triangles]")
+TEST_CASE("Debugging", "[debugging]")
 {
   std::filesystem::path fpath = "/home/rnjth94/buffer/parametrization/bimba.obj";
   Mesh                  mesh;
@@ -18,9 +18,14 @@ TEST_CASE("Pair triangles", "[pair-triangles]")
   std::cout << "Before: V " << mesh.n_vertices() << "; E " << mesh.n_edges() << "; F "
             << mesh.n_faces() << std::endl;
   pair_triangles(mesh, 0.1);
-  std::cout << "After: V " << mesh.n_vertices() << "; E " << mesh.n_edges() << "; F "
-            << mesh.n_faces() << std::endl;
-  REQUIRE(mesh.n_faces() < before);
+  std::cout << "After pairing: V " << mesh.n_vertices() << "; E " << mesh.n_edges()
+            << "; F " << mesh.n_faces() << std::endl;
   REQUIRE(OpenMesh::IO::write_mesh(
     mesh, "/home/rnjth94/buffer/parametrization/bimba_paired.obj"));
+  REQUIRE(mesh.n_faces() < before);
+  subdivide(mesh);
+  std::cout << "After subdivision: V " << mesh.n_vertices() << "; E " << mesh.n_edges()
+            << "; F " << mesh.n_faces() << std::endl;
+  REQUIRE(OpenMesh::IO::write_mesh(
+    mesh, "/home/rnjth94/buffer/parametrization/bimba_subdivided.obj"));
 }
