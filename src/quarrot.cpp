@@ -75,7 +75,7 @@ static void calc_beta(Mesh& mesh, const OpenMesh::EPropHandleT<double>& beta)
                   (glm::length2(ca) + glm::length2(b - a) + glm::length2(cb));
     }
     std::sort(alphas.begin(), alphas.end());
-    mesh.property(beta, eh) = (alphas[2] * alphas[3]) / (alphas[0] * alphas[1]);
+    mesh.property(beta, eh) = (alphas[0] * alphas[1]) / (alphas[2] * alphas[3]);
   }
 }
 
@@ -107,7 +107,7 @@ static void calc_beta_star(Mesh&                                 mesh,
                            const OpenMesh::EPropHandleT<double>& beta_star)
 {
   for (EdgeH eh : mesh.edges()) {
-    mesh.property(beta_star, eh) = calc_edge_beta_star(mesh, eh, beta_star, beta_star);
+    mesh.property(beta_star, eh) = calc_edge_beta_star(mesh, eh, beta, beta_star);
   }
 }
 
@@ -119,10 +119,11 @@ void pair_triangles(Mesh& mesh, double gamma)
   mesh.add_property(beta);
   mesh.add_property(beta_star);
   calc_beta(mesh, beta);
+
   calc_beta_star(mesh, beta, beta_star);
   // Priority queue of diagonals to be removed.
-  std::priority_queue<std::pair<double, EdgeH>> queue(
-    std::less<std::pair<double, EdgeH>> {});
+  using Pair = std::pair<double, EdgeH>;
+  std::priority_queue<Pair> queue;
   for (EdgeH eh : mesh.edges()) {
     const auto& status = mesh.status(eh);
     if (status.locked() || status.deleted()) {
@@ -141,7 +142,7 @@ void pair_triangles(Mesh& mesh, double gamma)
     if (mesh.status(eh).deleted()) {
       continue;
     }
-    else if (bstar < gamma) {
+    else if (mesh.property(beta, eh) < gamma) {
       mesh.status(eh).set_locked(true);
       continue;
     }
@@ -176,6 +177,7 @@ void pair_triangles(Mesh& mesh, double gamma)
     }
   }
   mesh.remove_property(beta);
+  mesh.remove_property(beta_star);
   mesh.garbage_collection();
 }
 

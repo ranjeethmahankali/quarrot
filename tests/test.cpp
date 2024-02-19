@@ -15,7 +15,11 @@ TEST_CASE("Pair triangles", "[pair-triangles]")
   Mesh                  mesh;
   REQUIRE(OpenMesh::IO::read_mesh(mesh, fpath.string()));
   size_t before = mesh.n_faces();
+  std::cout << "Before: V " << mesh.n_vertices() << "; E " << mesh.n_edges() << "; F "
+            << mesh.n_faces() << std::endl;
   pair_triangles(mesh);
+  std::cout << "After: V " << mesh.n_vertices() << "; E " << mesh.n_edges() << "; F "
+            << mesh.n_faces() << std::endl;
   REQUIRE(mesh.n_faces() < before);
   REQUIRE(OpenMesh::IO::write_mesh(
     mesh, "/home/rnjth94/buffer/parametrization/bimba_paired.obj"));
