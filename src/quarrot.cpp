@@ -1,5 +1,6 @@
 #include <quarrot.h>
 #include <OpenMesh/Core/Utils/Property.hh>
+#include <algorithm>
 #include <cassert>
 #include <glm/geometric.hpp>
 #include <glm/gtx/norm.hpp>
@@ -130,7 +131,6 @@ void pair_triangles(Mesh& mesh, double gamma)
   mesh.add_property(beta);
   mesh.add_property(beta_star);
   calc_beta(mesh, beta);
-
   calc_beta_star(mesh, beta, beta_star);
   // Priority queue of diagonals to be removed.
   using Pair = std::pair<double, EdgeH>;
@@ -189,6 +189,54 @@ void pair_triangles(Mesh& mesh, double gamma)
   }
   mesh.remove_property(beta);
   mesh.remove_property(beta_star);
+  mesh.delete_isolated_vertices();
+  mesh.garbage_collection();
+}
+
+void subdivide(Mesh& mesh)
+{
+  if (std::all_of(mesh.faces_begin(), mesh.faces_end(), [&mesh](FaceH fh) {
+        return std::distance(mesh.cfv_begin(fh), mesh.cfv_end(fh)) == 4;
+      })) {
+    // The mesh is already a quad-only mesh.
+    return;
+  }
+  OpenMesh::EPropHandleT<VertH> everts;
+  OpenMesh::FPropHandleT<VertH> fverts;
+  mesh.add_property(everts);
+  mesh.add_property(fverts);
+  for (EdgeH eh : mesh.edges()) {
+    mesh.property(everts, eh) = mesh.add_vertex(
+      0.5 * (mesh.point(mesh.to_vertex_handle(mesh.halfedge_handle(eh, 0))) +
+             mesh.point(mesh.to_vertex_handle(mesh.halfedge_handle(eh, 1)))));
+  }
+  for (FaceH fh : mesh.faces()) {
+    mesh.property(fverts, fh) = mesh.add_vertex(
+      std::accumulate(mesh.cfv_begin(fh),
+                      mesh.cfv_end(fh),
+                      glm::dvec3(0., 0., 0.),
+                      [&](glm::dvec3 sum, VertH vh) { return sum + mesh.point(vh); }) /
+      double(std::distance(mesh.cfv_begin(fh), mesh.cfv_end(fh))));
+  }
+  std::vector<std::array<VertH, 4>> quads;
+  for (FaceH fh : mesh.faces()) {
+    quads.clear();
+    std::transform(
+      mesh.cfh_begin(fh), mesh.cfh_end(fh), std::back_inserter(quads), [&](HalfH he) {
+        return std::array<VertH, 4> {
+          {mesh.from_vertex_handle(he),
+           mesh.property(everts, mesh.edge_handle(he)),
+           mesh.property(fverts, mesh.face_handle(he)),
+           mesh.property(everts, mesh.edge_handle(mesh.prev_halfedge_handle(he)))}};
+      });
+    mesh.delete_face(fh, false);
+    for (const auto& quad : quads) {
+      mesh.add_face(quad.data(), quad.size());
+    }
+  }
+  mesh.remove_property(everts);
+  mesh.remove_property(fverts);
+  mesh.delete_isolated_vertices();
   mesh.garbage_collection();
 }
 

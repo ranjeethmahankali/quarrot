@@ -26,4 +26,6 @@ void simplify(Mesh& mesh);
 
 void pair_triangles(Mesh& mesh, double gamma = 0.2);
 
+void subdivide(Mesh& mesh);
+
 }  // namespace quarrot
