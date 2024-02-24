@@ -15,6 +15,7 @@ set(CMAKE_TOOLCHAIN_FILE $ENV{VCPKG_PATH}/scripts/buildsystems/vcpkg.cmake)
 project(quarrot)
 
 find_package(OpenMesh REQUIRED)
+add_compile_definitions(OM_STATIC_BUILD)
 find_package(glm CONFIG REQUIRED)
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 
