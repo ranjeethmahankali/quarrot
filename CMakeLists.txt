@@ -16,6 +16,7 @@ project(quarrot)
 
 find_package(OpenMesh REQUIRED)
 find_package(glm CONFIG REQUIRED)
+add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 
 file(GLOB SRC_FILES "src/*.cpp")
 add_library(quarrot STATIC ${SRC_FILES})

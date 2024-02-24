@@ -2,7 +2,6 @@
 #include <OpenMesh/Core/Utils/Property.hh>
 #include <algorithm>
 #include <cassert>
-#include <glm/geometric.hpp>
 #include <glm/gtx/norm.hpp>
 #include <queue>
 #include <stdexcept>
