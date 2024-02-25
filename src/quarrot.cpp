@@ -279,7 +279,7 @@ void polychord_collapse(Mesh& mesh)
   }
   // Find all polychords.
   std::vector<FaceH> startfaces;
-  std::vector<FaceH> facebuf;
+  std::vector<FaceH> facebuf;  // temporary storage.
   for (FaceH fh : mesh.faces()) {
     const std::array<int, 2>& indices = mesh.property(chordIdxProp, fh);
     if (indices[0] == -1) {
@@ -301,6 +301,7 @@ void polychord_collapse(Mesh& mesh)
   std::cout << "Number of chords found: " << startfaces.size() << std::endl;
   // Debug-end
   mesh.remove_property(chordIdxProp);
+  throw std::logic_error("Not Implemented");
 }
 
 void simplify(Mesh& mesh)
