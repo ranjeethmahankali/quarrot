@@ -2,6 +2,7 @@
 #include <OpenMesh/Core/Utils/Property.hh>
 #include <algorithm>
 #include <cassert>
+#include <glm/fwd.hpp>
 #include <glm/gtx/norm.hpp>
 #include <queue>
 #include <stdexcept>
@@ -270,6 +271,23 @@ void walk_polychord(Mesh&                                      mesh,
   }
 }
 
+void calcFaceCentroids(Mesh& mesh, OpenMesh::FPropHandleT<glm::dvec3> centerProp)
+{
+  for (FaceH fh : mesh.faces()) {
+    if (mesh.status(fh).deleted()) {
+      continue;
+    }
+    glm::dvec3 total = {0., 0., 0.};
+    double     denom = 0.;
+    for (VertH fv : mesh.fv_range(fh)) {
+      total += mesh.point(fv);
+      denom += 1.;
+    }
+    total /= denom;
+    mesh.property(centerProp, fh) = total;
+  }
+}
+
 void polychord_collapse(Mesh& mesh)
 {
   OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp;
@@ -277,6 +295,9 @@ void polychord_collapse(Mesh& mesh)
   for (FaceH fh : mesh.faces()) {  // Initialize all indices to -1.
     mesh.property(chordIdxProp, fh).fill(-1);
   }
+  OpenMesh::FPropHandleT<glm::dvec3> fcenterProp;
+  mesh.add_property(fcenterProp);
+  calcFaceCentroids(mesh, fcenterProp);
   // Find all polychords.
   std::vector<FaceH> startfaces;
   std::vector<FaceH> facebuf;  // temporary storage.
@@ -301,6 +322,7 @@ void polychord_collapse(Mesh& mesh)
   std::cout << "Number of chords found: " << startfaces.size() << std::endl;
   // Debug-end
   mesh.remove_property(chordIdxProp);
+  mesh.remove_property(fcenterProp);
   throw std::logic_error("Not Implemented");
 }
 
