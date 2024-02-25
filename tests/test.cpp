@@ -28,4 +28,5 @@ TEST_CASE("Debugging", "[debugging]")
             << "; F " << mesh.n_faces() << std::endl;
   REQUIRE(OpenMesh::IO::write_mesh(
     mesh, "/home/rnjth94/buffer/parametrization/bimba_subdivided.obj"));
+  simplify(mesh);
 }

@@ -250,7 +250,6 @@ struct Error
   enum Value
   {
     None,
-    InvalidTopology_Polychords,
   };
 
 private:
@@ -270,30 +269,39 @@ public:
   constexpr bool operator!=(Error other) const { return !(*this == other); }
 };
 
-[[nodiscard]] Error walk_polychord(
-  Mesh&                                      mesh,
-  HalfH                                      he,
-  OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp,
-  int                                        index)
+void walk_polychord(Mesh&                                      mesh,
+                    HalfH                                      he,
+                    OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp,
+                    int                                        index,
+                    std::vector<FaceH>&                        facebuf)
 {
-  HalfH start = he;
+  HalfH start   = he;
+  FaceH curface = mesh.face_handle(he);
+  facebuf.clear();
   do {
-    auto& indices = mesh.property(chordIdxProp, mesh.face_handle(he));
+    auto& indices = mesh.property(chordIdxProp, curface);
+    facebuf.push_back(curface);
+    if (indices[0] != -1 && indices[1] != -1) {
+      facebuf.clear();
+      break;
+    }
+    he = mesh.opposite_halfedge_handle(
+      mesh.next_halfedge_handle(mesh.next_halfedge_handle(he)));
+    curface = mesh.face_handle(he);
+  } while (curface.is_valid() && he != start);
+  // Mark all the faces as traversed.
+  for (FaceH fh : facebuf) {
+    auto& indices = mesh.property(chordIdxProp, fh);
     if (indices[0] == -1) {
       indices[0] = index;
     }
     else if (indices[1] == -1) {
       indices[1] = index;
     }
-    else {
-      return Error::InvalidTopology_Polychords;
-    }
-    he = mesh.next_halfedge_handle(mesh.next_halfedge_handle(he));
-  } while (he != start);
-  return Error::None;
+  }
 }
 
-[[nodiscard]] Error polychord_collapse(Mesh& mesh)
+void polychord_collapse(Mesh& mesh)
 {
   OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp;
   mesh.add_property(chordIdxProp);
@@ -301,30 +309,34 @@ public:
     mesh.property(chordIdxProp, fh).fill(-1);
   }
   // Find all polychords.
-  std::vector<FaceH> chordfaces;
+  std::vector<FaceH> startfaces;
+  std::vector<FaceH> facebuf;
   for (FaceH fh : mesh.faces()) {
     const std::array<int, 2>& indices = mesh.property(chordIdxProp, fh);
     if (indices[0] == -1) {
       HalfH he = *mesh.cfh_begin(fh);
-      if (auto err = walk_polychord(mesh, he, chordIdxProp, int(chordfaces.size()))) {
-        return err;
+      walk_polychord(mesh, he, chordIdxProp, int(startfaces.size()), facebuf);
+      if (!facebuf.empty()) {
+        startfaces.push_back(fh);
       }
-      chordfaces.push_back(fh);
     }
     if (indices[1] == -1) {
       HalfH he = mesh.next_halfedge_handle(*mesh.cfh_begin(fh));
-      if (auto err = walk_polychord(mesh, he, chordIdxProp, int(chordfaces.size()))) {
-        return err;
+      walk_polychord(mesh, he, chordIdxProp, int(startfaces.size()), facebuf);
+      if (!facebuf.empty()) {
+        startfaces.push_back(fh);
       }
-      chordfaces.push_back(fh);
     }
   }
+  // Debug-start
+  std::cout << "Number of chords found: " << startfaces.size() << std::endl;
+  // Debug-end
   mesh.remove_property(chordIdxProp);
-  return Error::None;
 }
 
 void simplify(Mesh& mesh)
 {
+  polychord_collapse(mesh);
   throw std::logic_error("Not Implemented");
 }
 
