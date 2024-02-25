@@ -8,11 +8,6 @@
 
 namespace quarrot {
 
-void simplify(Mesh& mesh)
-{
-  throw std::logic_error("Not Implemented");
-}
-
 static bool isTriangle(const Mesh& mesh, FaceH fh)
 {
   if (!fh.is_valid()) {
@@ -241,6 +236,96 @@ void subdivide(Mesh& mesh)
   mesh.remove_property(fverts);
   mesh.delete_isolated_vertices();
   mesh.garbage_collection();
+}
+
+enum struct QMSState
+{
+  PolyChord,
+  Quad,
+  Doublet,
+};
+
+struct Error
+{
+  enum Value
+  {
+    None,
+    InvalidTopology_Polychords,
+  };
+
+private:
+  Value mValue;
+
+public:
+  // cppcheck-suppress noExplicitConstructor
+  constexpr Error(Value value)
+      : mValue(value)
+  {}
+  Error()
+      : Error(Value::None)
+  {}
+  constexpr      operator Value() const { return mValue; }
+  constexpr      operator bool() const { return mValue != Value::None; }
+  constexpr bool operator==(Error other) const { return mValue == other.mValue; }
+  constexpr bool operator!=(Error other) const { return !(*this == other); }
+};
+
+[[nodiscard]] Error walk_polychord(
+  Mesh&                                      mesh,
+  HalfH                                      he,
+  OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp,
+  int                                        index)
+{
+  HalfH start = he;
+  do {
+    auto& indices = mesh.property(chordIdxProp, mesh.face_handle(he));
+    if (indices[0] == -1) {
+      indices[0] = index;
+    }
+    else if (indices[1] == -1) {
+      indices[1] = index;
+    }
+    else {
+      return Error::InvalidTopology_Polychords;
+    }
+    he = mesh.next_halfedge_handle(mesh.next_halfedge_handle(he));
+  } while (he != start);
+  return Error::None;
+}
+
+[[nodiscard]] Error polychord_collapse(Mesh& mesh)
+{
+  OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp;
+  mesh.add_property(chordIdxProp);
+  for (FaceH fh : mesh.faces()) {  // Initialize all indices to -1.
+    mesh.property(chordIdxProp, fh).fill(-1);
+  }
+  // Find all polychords.
+  std::vector<FaceH> chordfaces;
+  for (FaceH fh : mesh.faces()) {
+    const std::array<int, 2>& indices = mesh.property(chordIdxProp, fh);
+    if (indices[0] == -1) {
+      HalfH he = *mesh.cfh_begin(fh);
+      if (auto err = walk_polychord(mesh, he, chordIdxProp, int(chordfaces.size()))) {
+        return err;
+      }
+      chordfaces.push_back(fh);
+    }
+    if (indices[1] == -1) {
+      HalfH he = mesh.next_halfedge_handle(*mesh.cfh_begin(fh));
+      if (auto err = walk_polychord(mesh, he, chordIdxProp, int(chordfaces.size()))) {
+        return err;
+      }
+      chordfaces.push_back(fh);
+    }
+  }
+  mesh.remove_property(chordIdxProp);
+  return Error::None;
+}
+
+void simplify(Mesh& mesh)
+{
+  throw std::logic_error("Not Implemented");
 }
 
 }  // namespace quarrot
