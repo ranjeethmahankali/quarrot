@@ -238,37 +238,6 @@ void subdivide(Mesh& mesh)
   mesh.garbage_collection();
 }
 
-enum struct QMSState
-{
-  PolyChord,
-  Quad,
-  Doublet,
-};
-
-struct Error
-{
-  enum Value
-  {
-    None,
-  };
-
-private:
-  Value mValue;
-
-public:
-  // cppcheck-suppress noExplicitConstructor
-  constexpr Error(Value value)
-      : mValue(value)
-  {}
-  Error()
-      : Error(Value::None)
-  {}
-  constexpr      operator Value() const { return mValue; }
-  constexpr      operator bool() const { return mValue != Value::None; }
-  constexpr bool operator==(Error other) const { return mValue == other.mValue; }
-  constexpr bool operator!=(Error other) const { return !(*this == other); }
-};
-
 void walk_polychord(Mesh&                                      mesh,
                     HalfH                                      he,
                     OpenMesh::FPropHandleT<std::array<int, 2>> chordIdxProp,
