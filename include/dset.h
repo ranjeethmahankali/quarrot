@@ -33,6 +33,12 @@ public:
       mData[i] = (uint32_t)i;
   }
 
+  void reset()
+  {
+    for (uint32_t i = 0; i < mData.size(); ++i)
+      mData[i] = (uint32_t)i;
+  }
+
   uint32_t find(uint32_t id) const
   {
     while (id != parent(id)) {
