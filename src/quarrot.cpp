@@ -93,11 +93,12 @@ struct PolychordTraverse
   std::vector<FaceH>   m_faces;
   DisjointSets         m_vsets;
   std::vector<Quadric> m_quadrics;
+  std::vector<VertH>   m_visited;
   double               m_err_q  = 0.;
   double               m_err_d2 = 0.;
 
   explicit PolychordTraverse(size_t numVertices)
-      : m_vsets(numVertices)
+      : m_vsets(uint32_t(numVertices))
   {}
 
   bool valid() const { return !m_faces.empty(); }
@@ -110,10 +111,12 @@ struct PolychordTraverse
     std::copy(src.begin(), src.end(), std::back_inserter(m_quadrics));
   }
 
-  void record_collapse(Mesh& mesh, HalfH he)
+  void record_collapse(const Mesh& mesh, HalfH he)
   {
     VertH from = mesh.from_vertex_handle(he);
     VertH to   = mesh.to_vertex_handle(he);
+    m_visited.push_back(from);
+    m_visited.push_back(to);
     // Unite the sets.
     m_vsets.unite(uint32_t(from.idx()), uint32_t(to.idx()));
     // Sum the quadrics.
@@ -128,28 +131,80 @@ struct PolychordTraverse
   void reset(Mesh& mesh, const Props& props)
   {
     m_faces.clear();
-    m_vsets.reset();
+    m_vsets.reset(uint32_t(mesh.n_vertices()));
+    m_visited.clear();
     copy_quadrics(mesh, props.m_vert_quadrics);
     m_err_q  = 0.;
     m_err_d2 = 0.;
   }
 
-  double valence_error(Mesh& mesh) { throw std::logic_error("Not Implemented"); }
+  double valence_error(const Mesh& mesh)
+  {
+    // Remove duplicates.
+    std::sort(m_visited.begin(), m_visited.end());
+    m_visited.erase(std::unique(m_visited.begin(), m_visited.end()), m_visited.end());
+    // Sort by the collapsed group id.
+    std::sort(m_visited.begin(), m_visited.end(), [this](VertH a, VertH b) {
+      return m_vsets.find(uint32_t(a.idx())) < m_vsets.find(uint32_t(b.idx()));
+    });
+    // Iterate over each collapsed group and accumulate error terms t1 and t2.
+    double t1      = 0.;
+    double t2      = 0.;
+    auto   gbegin  = m_visited.begin();
+    size_t ngroups = 0;
+    while (gbegin != m_visited.end()) {
+      uint32_t gid = m_vsets.find(uint32_t(gbegin->idx()));
+      // Compute the new valence of the collapsed vertex of this group.
+      int  newv  = 0;
+      auto begin = gbegin;
+      while (begin != m_visited.end() && m_vsets.find(uint32_t(begin->idx()))) {
+        // Process each vertex in this group.
+        VertH vh = *begin;
+        newv += std::count_if(mesh.cvv_begin(vh), mesh.cvv_end(vh), [&, this](VertH vh) {
+          return m_vsets.find(uint32_t(vh.idx())) != gid;
+        });
+        ++begin;
+      }
+      int diffnew = std::abs(newv - 4);
+      // Compute the new valences and the accumulate error.
+      auto end     = begin;
+      begin        = gbegin;
+      double avg   = 0.;
+      double recip = 1. / double(std::distance(begin, end));
+      while (begin != end) {
+        VertH  vh         = *begin;
+        int    oldv       = size_t(std::distance(mesh.cvv_begin(vh), mesh.cvv_end(vh)));
+        int    diffold    = std::abs(oldv - 4);
+        double diffchange = double(std::max(0, diffold - diffnew));
+        t1                = std::max(t1, diffchange);
+        avg += diffchange * recip;
+        ++begin;
+      }
+      t2 += avg;
+      gbegin = begin;
+      ++ngroups;
+    }
+    t2 /= double(ngroups);
+    return t1 + t2;
+  }
 };
 
 struct PolychordInfo
 {
   HalfH  m_start_he;
-  double m_err_q = 0.;
-  double m_err_d = 0.;
-  double m_err_v = 0.;
+  double m_err = 0.;
 
-  PolychordInfo(HalfH he, double eq, double ed, double ev)
+  PolychordInfo(HalfH he, const Mesh& mesh, PolychordTraverse& tdata)
       : m_start_he(he)
-      , m_err_q(eq)
-      , m_err_d(ed)
-      , m_err_v(ev)
-  {}
+  {
+    static constexpr double ALPHA_Q = 0.05;
+    static constexpr double ALPHA_D = 0.05;
+    static constexpr double ALPHA_V = 0.9;
+    // The 1 - e^x form normalizes all positive errors to be between 0 and 1.
+    m_err = ALPHA_Q * (1. - std::exp(tdata.m_err_q)) +
+            ALPHA_D * (1. - std::exp(std::sqrt(tdata.m_err_d2))) +
+            ALPHA_V * (1. - std::exp(tdata.valence_error(mesh)));
+  }
 };
 
 void walk_polychord(Mesh&              mesh,
@@ -203,7 +258,7 @@ void polychord_collapse(Mesh& mesh)
         debug::write_faces(ptraverse.m_faces, "chord" + std::to_string(chords.size()));
         debug::append(ptraverse.m_err_q, "chord_err");
         // debug
-        chords.emplace_back(he, ptraverse.m_err_q, std::sqrt(ptraverse.m_err_d2), 0.);
+        chords.emplace_back(he, mesh, ptraverse);
       }
     }
     if (indices[1] == -1) {
@@ -214,7 +269,7 @@ void polychord_collapse(Mesh& mesh)
         debug::write_faces(ptraverse.m_faces, "chord" + std::to_string(chords.size()));
         debug::append(ptraverse.m_err_q, "chord_err");
         // debug
-        chords.emplace_back(he, ptraverse.m_err_q, std::sqrt(ptraverse.m_err_d2), 0.);
+        chords.emplace_back(he, mesh, ptraverse);
       }
     }
   }

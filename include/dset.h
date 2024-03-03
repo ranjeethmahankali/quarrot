@@ -34,9 +34,12 @@ public:
       mData[i] = (uint32_t)i;
   }
 
-  void reset()
+  void reset(uint32_t size)
   {
-    for (uint32_t i = 0; i < mData.size(); ++i)
+    if (size != mData.size()) {
+      mData = std::vector<std::atomic<uint64_t>>(size);
+    }
+    for (uint32_t i = 0; i < size; ++i)
       mData[i] = (uint32_t)i;
   }
 
