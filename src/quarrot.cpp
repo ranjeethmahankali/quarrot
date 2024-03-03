@@ -34,10 +34,10 @@ void calc_vert_quadrics(Mesh&                              mesh,
 {
   for (VertH vh : mesh.vertices()) {
     double stddev =
-      0.25 * std::accumulate(
+      0.25 * std::sqrt(std::accumulate(
                mesh.cve_begin(vh), mesh.cve_end(vh), 0., [&](double total, EdgeH eh) {
                  return mesh.calc_edge_sqr_length(eh) + total;
-               });
+               }));
     Quadric q;
     for (HalfH he : mesh.voh_range(vh)) {  // This only covers half of the triangles.
       FaceH fh = mesh.face_handle(he);
@@ -291,8 +291,9 @@ void try_collapse_polychord(Mesh&                           mesh,
     VertH   vh = mesh.to_vertex_handle(he);
     q += mesh.property(quadrics, vh);
     mesh.collapse(he);
-    mesh.point(vh) = q.minimizer();
-    he             = next;
+    mesh.point(vh)              = q.minimizer();
+    mesh.property(quadrics, vh) = q;
+    he                          = next;
   } while (curface.is_valid() && he != start && !mesh.status(he).deleted());
 }
 
