@@ -179,7 +179,7 @@ struct PolychordTraverse
         VertH  vh         = *begin;
         int    oldv       = size_t(std::distance(mesh.cvv_begin(vh), mesh.cvv_end(vh)));
         int    diffold    = std::abs(oldv - 4);
-        double diffchange = double(std::max(0, diffold - diffnew));
+        double diffchange = double(std::max(0, diffnew - diffold));
         t1                = std::max(t1, diffchange);
         avg += diffchange * recip;
         ++begin;
