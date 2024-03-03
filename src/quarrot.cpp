@@ -34,10 +34,10 @@ void calc_vert_quadrics(Mesh&                              mesh,
 {
   for (VertH vh : mesh.vertices()) {
     double stddev =
-      0.25 * std::sqrt(std::accumulate(
-               mesh.cve_begin(vh), mesh.cve_end(vh), 0., [&](double total, EdgeH eh) {
-                 return mesh.calc_edge_sqr_length(eh) + total;
-               }));
+      0.5 * std::sqrt(std::accumulate(
+              mesh.cve_begin(vh), mesh.cve_end(vh), 0., [&](double total, EdgeH eh) {
+                return mesh.calc_edge_sqr_length(eh) + total;
+              }));
     Quadric q;
     for (HalfH he : mesh.voh_range(vh)) {  // This only covers half of the triangles.
       FaceH fh = mesh.face_handle(he);
@@ -245,7 +245,7 @@ void find_polychord(Mesh&              mesh,
   }
 }
 
-void try_collapse_polychord(Mesh&                           mesh,
+bool try_collapse_polychord(Mesh&                           mesh,
                             HalfH                           he,
                             OpenMesh::VPropHandleT<Quadric> quadrics)
 {
@@ -264,7 +264,7 @@ void try_collapse_polychord(Mesh&                           mesh,
   } while (curface.is_valid() && he != start);
   if (locked) {
     // This polychord interferes with another polychord that was already collapsed.
-    return;
+    return false;
   }
   // Lock the neighborhood before collapsing, and collect all the edges to be collapsed.
   he      = start;
@@ -295,9 +295,32 @@ void try_collapse_polychord(Mesh&                           mesh,
     mesh.property(quadrics, vh) = q;
     he                          = next;
   } while (curface.is_valid() && he != start && !mesh.status(he).deleted());
+  return true;
 }
 
-void polychord_collapse(Mesh& mesh)
+void collapse_doublets(Mesh& mesh)
+{
+  size_t numcollapsed;
+  do {
+    numcollapsed = 0;
+    for (VertH vh : mesh.vertices()) {
+      if (std::distance(mesh.cvoh_begin(vh), mesh.cvoh_end(vh)) == 2) {
+        std::array<HalfH, 2> hes;
+        std::copy(mesh.cvoh_begin(vh), mesh.cvoh_end(vh), hes.begin());
+        std::array<VertH, 4> qvs = {
+          {mesh.to_vertex_handle(hes[0]),
+           mesh.to_vertex_handle(mesh.next_halfedge_handle(hes[0])),
+           mesh.to_vertex_handle(hes[1]),
+           mesh.to_vertex_handle(mesh.next_halfedge_handle(hes[1]))}};
+        mesh.delete_vertex(vh, false);
+        mesh.add_face(qvs.data(), qvs.size());
+        ++numcollapsed;
+      }
+    }
+  } while (numcollapsed > 0);
+}
+
+size_t polychord_collapse(Mesh& mesh)
 {
   Props props(mesh);
   // Find all polychords.
@@ -326,36 +349,31 @@ void polychord_collapse(Mesh& mesh)
     chords.begin(), chords.end(), [](const PolychordInfo& a, const PolychordInfo& b) {
       return a.m_err < b.m_err;
     });
-  // Debug.
-  std::cout << "Singuarities before: "
-            << std::count_if(mesh.vertices_begin(),
-                             mesh.vertices_end(),
-                             [&](VertH vh) {
-                               return !mesh.status(vh).deleted() && mesh.valence(vh) != 4;
-                             })
-            << std::endl;
-  for (const PolychordInfo& chord : chords) {
-    try_collapse_polychord(mesh, chord.m_start_he, props.m_vert_quadrics);
-  }
+  size_t num_chords =
+    std::count_if(chords.begin(), chords.end(), [&](const PolychordInfo& chord) {
+      return try_collapse_polychord(mesh, chord.m_start_he, props.m_vert_quadrics);
+    });
+  collapse_doublets(mesh);
   mesh.garbage_collection();
-  std::cout << "Singuarities after: "
-            << std::count_if(mesh.vertices_begin(),
-                             mesh.vertices_end(),
-                             [&](VertH vh) {
-                               return !mesh.status(vh).deleted() && mesh.valence(vh) != 4;
-                             })
-            << std::endl;
   // Unlock all vertices.
   for (VertH vh : mesh.vertices()) {
     mesh.status(vh).set_locked(false);
   }
+  return num_chords;
 }
 
 void simplify(Mesh& mesh)
 {
-  polychord_collapse(mesh);
-  OpenMesh::IO::write_mesh(
-    mesh, "/home/rnjth94/buffer/parametrization/bimba_polychord_collapse.obj");
+  size_t nchords;
+  size_t count = 0;
+  do {
+    nchords = polychord_collapse(mesh);
+    std::cout << "Collapsed polychords: " << nchords << std::endl;
+    std::string path = "/home/rnjth94/buffer/parametrization/bimba_collapsed" +
+                       std::to_string(count) + ".obj";
+    OpenMesh::IO::write_mesh(mesh, path);
+    ++count;
+  } while (nchords > 0 && count < 10);
   throw std::logic_error("Not Implemented");
 }
 

@@ -2,16 +2,16 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-mesh = pgf.loadPolyMesh(
-    pgf.absPath(
-        pgf.var_string("/home/rnjth94/buffer/parametrization/bimba.obj")))
-pgv.show("original", mesh)
+# mesh = pgf.loadPolyMesh(
+#     pgf.absPath(
+#         pgf.var_string("/home/rnjth94/buffer/parametrization/bimba.obj")))
+# pgv.show("original", mesh)
 
-paired = pgf.loadPolyMesh(
-    pgf.absPath(
-        pgf.var_string(
-            "/home/rnjth94/buffer/parametrization/bimba_paired.obj")))
-pgv.show("paired", paired)
+# paired = pgf.loadPolyMesh(
+#     pgf.absPath(
+#         pgf.var_string(
+#             "/home/rnjth94/buffer/parametrization/bimba_paired.obj")))
+# pgv.show("paired", paired)
 
 subd = pgf.loadPolyMesh(
     pgf.absPath(
@@ -19,12 +19,13 @@ subd = pgf.loadPolyMesh(
             "/home/rnjth94/buffer/parametrization/bimba_subdivided.obj")))
 pgv.show("subdivided", subd)
 
-collapsed = pgf.loadPolyMesh(
-    pgf.absPath(
-        pgf.var_string(
-            "/home/rnjth94/buffer/parametrization/bimba_polychord_collapse.obj"
-        )))
-pgv.show("collapsed", collapsed)
+for ci in range(9):
+    collapsed = pgf.loadPolyMesh(
+        pgf.absPath(
+            pgf.var_string(
+                f"/home/rnjth94/buffer/parametrization/bimba_collapsed{ci}.obj"
+            )))
+    pgv.show(f"collapsed{ci}", collapsed)
 
 # with open("temp/chord_err.txt", "r") as f:
 #     err = [float(line) for line in f.readlines()]
