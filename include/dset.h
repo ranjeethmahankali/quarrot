@@ -1,3 +1,4 @@
+#pragma once
 /*
   Source: https://github.com/wjakob/dset/blob/master/dset.h
  */

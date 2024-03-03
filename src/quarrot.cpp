@@ -1,12 +1,14 @@
 #include <dset.h>
-#include <probabilistic_quadircs.h>
-#include <quarrot.h>
-#include <OpenMesh/Core/Utils/Property.hh>
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
-#include <glm/glm.hpp>
-#include <stdexcept>
+
+#include <OpenMesh/Core/Utils/Property.hh>
+
+#include <debug.h>
+#include <open_mesh_adaptor.h>
+#include <probabilistic_quadircs.h>
+#include <quarrot.h>
 
 namespace quarrot {
 
@@ -188,6 +190,8 @@ void polychord_collapse(Mesh& mesh)
       HalfH he = *mesh.cfh_begin(fh);
       walk_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
+        // debug
+        // debug
         chords.emplace_back(he, 0., ptraverse.max_err, 0.);
       }
     }
