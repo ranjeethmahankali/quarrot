@@ -5,10 +5,14 @@
 
 #include <OpenMesh/Core/Utils/Property.hh>
 
-#include <debug.h>
 #include <open_mesh_adaptor.h>
 #include <probabilistic_quadircs.h>
 #include <quarrot.h>
+
+// Debug
+#include <debug.h>
+#include <OpenMesh/Core/IO/MeshIO.hh>
+// Debug
 
 namespace quarrot {
 
@@ -157,7 +161,7 @@ struct PolychordTraverse
       // Compute the new valence of the collapsed vertex of this group.
       int  newv  = 0;
       auto begin = gbegin;
-      while (begin != m_visited.end() && m_vsets.find(uint32_t(begin->idx()))) {
+      while (begin != m_visited.end() && gid == m_vsets.find(uint32_t(begin->idx()))) {
         // Process each vertex in this group.
         VertH vh = *begin;
         newv += std::count_if(mesh.cvv_begin(vh), mesh.cvv_end(vh), [&, this](VertH vh) {
@@ -241,23 +245,69 @@ void find_polychord(Mesh&              mesh,
   }
 }
 
+void try_collapse_polychord(Mesh&                           mesh,
+                            HalfH                           he,
+                            OpenMesh::VPropHandleT<Quadric> quadrics)
+{
+  HalfH start   = he;
+  FaceH curface = mesh.face_handle(he);
+  // Check to make ensure there is no interference.
+  bool locked = false;
+  do {
+    if (mesh.status(mesh.from_vertex_handle(he)).locked() ||
+        mesh.status(mesh.to_vertex_handle(he)).locked()) {
+      locked = true;
+      break;
+    }
+    he = mesh.opposite_halfedge_handle(
+      mesh.next_halfedge_handle(mesh.next_halfedge_handle(he)));
+  } while (curface.is_valid() && he != start);
+  if (locked) {
+    // This polychord interferes with another polychord that was already collapsed.
+    return;
+  }
+  // Lock the neighborhood before collapsing, and collect all the edges to be collapsed.
+  he      = start;
+  curface = mesh.face_handle(he);
+  do {
+    std::array<VertH, 2> verts = {
+      {mesh.from_vertex_handle(he), mesh.to_vertex_handle(he)}};
+    for (VertH vh : verts) {
+      mesh.status(vh).set_locked(true);
+      for (VertH nvh : mesh.vv_range(vh)) {
+        mesh.status(nvh).set_locked(true);
+      }
+    }
+    he = mesh.opposite_halfedge_handle(
+      mesh.next_halfedge_handle(mesh.next_halfedge_handle(he)));
+  } while (curface.is_valid() && he != start);
+  // Do the collapse.
+  he      = start;
+  curface = mesh.face_handle(he);
+  do {
+    HalfH next = mesh.opposite_halfedge_handle(
+      mesh.next_halfedge_handle(mesh.next_halfedge_handle(he)));
+    Quadric q  = mesh.property(quadrics, mesh.from_vertex_handle(he));
+    VertH   vh = mesh.to_vertex_handle(he);
+    q += mesh.property(quadrics, vh);
+    mesh.collapse(he);
+    mesh.point(vh) = q.minimizer();
+    he             = next;
+  } while (curface.is_valid() && he != start && !mesh.status(he).deleted());
+}
+
 void polychord_collapse(Mesh& mesh)
 {
   Props props(mesh);
   // Find all polychords.
   std::vector<PolychordInfo> chords;
-  debug::clear("chord_err");
-  PolychordTraverse ptraverse(mesh.n_vertices());  // temporary storage.
+  PolychordTraverse          ptraverse(mesh.n_vertices());  // temporary storage.
   for (FaceH fh : mesh.faces()) {
     const std::array<int, 2>& indices = mesh.property(props.m_chord_indices, fh);
     if (indices[0] == -1) {
       HalfH he = *mesh.cfh_begin(fh);
       find_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
-        // debug
-        debug::write_faces(ptraverse.m_faces, "chord" + std::to_string(chords.size()));
-        debug::append(ptraverse.m_err_q, "chord_err");
-        // debug
         chords.emplace_back(he, mesh, ptraverse);
       }
     }
@@ -265,23 +315,46 @@ void polychord_collapse(Mesh& mesh)
       HalfH he = mesh.next_halfedge_handle(*mesh.cfh_begin(fh));
       find_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
-        // debug
-        debug::write_faces(ptraverse.m_faces, "chord" + std::to_string(chords.size()));
-        debug::append(ptraverse.m_err_q, "chord_err");
-        // debug
         chords.emplace_back(he, mesh, ptraverse);
       }
     }
   }
-  // Debug-start
-  std::cout << "Number of chords found: " << chords.size() << std::endl;
-  // Debug-end
-  throw std::logic_error("Not Implemented");
+  // Collapse as many chords as possible, in the order of increasing error,
+  // without interference.
+  std::sort(
+    chords.begin(), chords.end(), [](const PolychordInfo& a, const PolychordInfo& b) {
+      return a.m_err < b.m_err;
+    });
+  // Debug.
+  std::cout << "Singuarities before: "
+            << std::count_if(mesh.vertices_begin(),
+                             mesh.vertices_end(),
+                             [&](VertH vh) {
+                               return !mesh.status(vh).deleted() && mesh.valence(vh) != 4;
+                             })
+            << std::endl;
+  for (const PolychordInfo& chord : chords) {
+    try_collapse_polychord(mesh, chord.m_start_he, props.m_vert_quadrics);
+  }
+  mesh.garbage_collection();
+  std::cout << "Singuarities after: "
+            << std::count_if(mesh.vertices_begin(),
+                             mesh.vertices_end(),
+                             [&](VertH vh) {
+                               return !mesh.status(vh).deleted() && mesh.valence(vh) != 4;
+                             })
+            << std::endl;
+  // Unlock all vertices.
+  for (VertH vh : mesh.vertices()) {
+    mesh.status(vh).set_locked(false);
+  }
 }
 
 void simplify(Mesh& mesh)
 {
   polychord_collapse(mesh);
+  OpenMesh::IO::write_mesh(
+    mesh, "/home/rnjth94/buffer/parametrization/bimba_polychord_collapse.obj");
   throw std::logic_error("Not Implemented");
 }
 
