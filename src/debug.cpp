@@ -6,20 +6,34 @@
 #include <iomanip>
 
 namespace quarrot {
+
+namespace fs = std::filesystem;
+
 namespace debug {
 
-void write_faces(std::span<const FaceH> faces, const fs::path& path)
+static fs::path from_label(const std::string& label)
 {
-  std::ofstream f(path, std::ios::ate);
+  return fs::path("temp/" + label + ".txt");
+}
+
+void write_faces(std::span<const FaceH> faces, const std::string& label)
+{
+  std::ofstream f(from_label(label), std::ios::ate);
   for (FaceH fh : faces) {
     f << fh.idx() << std::endl;
   }
 }
 
-void append(double val, const fs::path& path)
+void append(double val, const std::string& label)
 {
-  std::ofstream f(path, std::ios::app);
+  std::ofstream f(from_label(label), std::ios::app);
   f << std::setprecision(14) << val << std::endl;
+}
+
+void clear(const std::string& label)
+{
+  std::ofstream f(from_label(label), std::ios::ate);
+  // Truncalte the file and close the file. Nothing else to do.
 }
 
 }  // namespace debug

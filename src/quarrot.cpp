@@ -183,7 +183,8 @@ void polychord_collapse(Mesh& mesh)
   Props props(mesh);
   // Find all polychords.
   std::vector<PolychordInfo> chords;
-  PolychordTraverse          ptraverse(mesh.n_vertices());  // temporary storage.
+  debug::clear("chord_err");
+  PolychordTraverse ptraverse(mesh.n_vertices());  // temporary storage.
   for (FaceH fh : mesh.faces()) {
     const std::array<int, 2>& indices = mesh.property(props.chordIndices, fh);
     if (indices[0] == -1) {
@@ -191,6 +192,8 @@ void polychord_collapse(Mesh& mesh)
       walk_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
         // debug
+        debug::write_faces(ptraverse.faces, "chord" + std::to_string(chords.size()));
+        debug::append(ptraverse.max_err, "chord_err");
         // debug
         chords.emplace_back(he, 0., ptraverse.max_err, 0.);
       }
@@ -199,6 +202,10 @@ void polychord_collapse(Mesh& mesh)
       HalfH he = mesh.next_halfedge_handle(*mesh.cfh_begin(fh));
       walk_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
+        // debug
+        debug::write_faces(ptraverse.faces, "chord" + std::to_string(chords.size()));
+        debug::append(ptraverse.max_err, "chord_err");
+        // debug
         chords.emplace_back(he, 0., ptraverse.max_err, 0.);
       }
     }
