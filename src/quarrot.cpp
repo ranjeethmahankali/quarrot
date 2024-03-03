@@ -207,7 +207,7 @@ struct PolychordInfo
   }
 };
 
-void walk_polychord(Mesh&              mesh,
+void find_polychord(Mesh&              mesh,
                     HalfH              he,
                     const Props&       props,
                     int                index,
@@ -252,7 +252,7 @@ void polychord_collapse(Mesh& mesh)
     const std::array<int, 2>& indices = mesh.property(props.m_chord_indices, fh);
     if (indices[0] == -1) {
       HalfH he = *mesh.cfh_begin(fh);
-      walk_polychord(mesh, he, props, int(chords.size()), ptraverse);
+      find_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
         // debug
         debug::write_faces(ptraverse.m_faces, "chord" + std::to_string(chords.size()));
@@ -263,7 +263,7 @@ void polychord_collapse(Mesh& mesh)
     }
     if (indices[1] == -1) {
       HalfH he = mesh.next_halfedge_handle(*mesh.cfh_begin(fh));
-      walk_polychord(mesh, he, props, int(chords.size()), ptraverse);
+      find_polychord(mesh, he, props, int(chords.size()), ptraverse);
       if (ptraverse.valid()) {
         // debug
         debug::write_faces(ptraverse.m_faces, "chord" + std::to_string(chords.size()));
