@@ -205,9 +205,9 @@ struct PolychordInfo
     static constexpr double ALPHA_D = 0.05;
     static constexpr double ALPHA_V = 0.9;
     // The 1 - e^x form normalizes all positive errors to be between 0 and 1.
-    m_err = ALPHA_Q * (1. - std::exp(tdata.m_err_q)) +
-            ALPHA_D * (1. - std::exp(std::sqrt(tdata.m_err_d2))) +
-            ALPHA_V * (1. - std::exp(tdata.valence_error(mesh)));
+    m_err = ALPHA_Q * (1. - std::exp(-tdata.m_err_q)) +
+            ALPHA_D * (1. - std::exp(-std::sqrt(tdata.m_err_d2))) +
+            ALPHA_V * (1. - std::exp(-tdata.valence_error(mesh)));
   }
 };
 
