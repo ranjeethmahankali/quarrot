@@ -2,44 +2,20 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-# mesh = pgf.loadPolyMesh(
-#     pgf.absPath(
-#         pgf.var_string("/home/rnjth94/buffer/parametrization/bimba.obj")))
-# pgv.show("original", mesh)
-
-# paired = pgf.loadPolyMesh(
-#     pgf.absPath(
-#         pgf.var_string(
-#             "/home/rnjth94/buffer/parametrization/bimba_paired.obj")))
-# pgv.show("paired", paired)
-
 subd = pgf.loadPolyMesh(
     pgf.absPath(
         pgf.var_string(
             "/home/rnjth94/buffer/parametrization/bimba_subdivided.obj")))
 pgv.show("subdivided", subd)
 
-for ci in range(9):
-    collapsed = pgf.loadPolyMesh(
-        pgf.absPath(
-            pgf.var_string(
-                f"/home/rnjth94/buffer/parametrization/bimba_collapsed{ci}.obj"
-            )))
-    pgv.show(f"collapsed{ci}", collapsed)
-
-# with open("temp/chord_err.txt", "r") as f:
-#     err = [float(line) for line in f.readlines()]
-
-# indices = sorted(list(range(len(err))), key=lambda i: err[i])
-
-# for ci in indices[:10]:
-#     with open(f"temp/chord{ci}.txt", "r") as f:
-#         findices = [int(line) for line in f.readlines()]
-#         faces = pgf.var_int(findices)
-#         chord = pgf.subMesh(subd, faces)
-#         colors = [(1., 0., 0.) for _ in range(len(findices))]
-#         chord = pgf.meshWithVertexColors(chord, pgf.var_vec3(colors))
-#         pgv.show(f"chord{ci}", chord)
+paths = pgf.var_string([
+    f"/home/rnjth94/buffer/parametrization/bimba_collapsed{ci}.obj"
+    for ci in range(6)
+])
+collapsedList = pgf.loadPolyMesh(pgf.absPath(paths))
+pgv.print("Number of meshes", pgf.listLength(collapsedList))
+collapsed = pgf.listItem(collapsedList, pgv.slideri32("Index", 0, 10, 0))
+pgv.show("collapsed", collapsed)
 
 pgv.runCommands("""
 zoomextents

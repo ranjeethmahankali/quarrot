@@ -36,5 +36,12 @@ void clear(const std::string& label)
   // Truncalte the file and close the file. Nothing else to do.
 }
 
+size_t count_singularities(const Mesh& mesh)
+{
+  return std::count_if(mesh.vertices_begin(), mesh.vertices_end(), [&mesh](VertH vh) {
+    return mesh.valence(vh) != 4;
+  });
+}
+
 }  // namespace debug
 }  // namespace quarrot

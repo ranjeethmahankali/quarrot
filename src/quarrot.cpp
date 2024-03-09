@@ -179,7 +179,7 @@ struct PolychordTraverse
         VertH  vh         = *begin;
         int    oldv       = size_t(std::distance(mesh.cvv_begin(vh), mesh.cvv_end(vh)));
         int    diffold    = std::abs(oldv - 4);
-        double diffchange = double(std::max(0, diffnew - diffold));
+        double diffchange = double(std::max(0, diffold - diffnew));
         t1                = std::max(t1, diffchange);
         avg += diffchange * recip;
         ++begin;
@@ -366,6 +366,8 @@ void simplify(Mesh& mesh)
 {
   size_t nchords;
   size_t count = 0;
+  std::cout << "Singularity Ratio: "
+            << double(debug::count_singularities(mesh)) / double(mesh.n_vertices());
   do {
     nchords = polychord_collapse(mesh);
     std::cout << "Collapsed polychords: " << nchords << std::endl;
@@ -373,7 +375,9 @@ void simplify(Mesh& mesh)
                        std::to_string(count) + ".obj";
     OpenMesh::IO::write_mesh(mesh, path);
     ++count;
-  } while (nchords > 0 && count < 10);
+    std::cout << "Singularity Ratio: "
+              << double(debug::count_singularities(mesh)) / double(mesh.n_vertices());
+  } while (nchords > 0 && count < 20);
   throw std::logic_error("Not Implemented");
 }
 
