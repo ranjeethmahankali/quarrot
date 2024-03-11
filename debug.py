@@ -14,7 +14,9 @@ paths = pgf.var_string([
 ])
 collapsedList = pgf.loadPolyMesh(pgf.absPath(paths))
 pgv.print("Number of meshes", pgf.listLength(collapsedList))
-collapsed = pgf.listItem(collapsedList, pgv.slideri32("Index", 0, 10, 0))
+index = pgv.slideri32("Index", 0, 5, 0)
+collapsed = pgf.listItem(collapsedList, index)
+pgv.print("Path", pgf.listItem(paths, index))
 pgv.show("collapsed", collapsed)
 
 pgv.runCommands("""

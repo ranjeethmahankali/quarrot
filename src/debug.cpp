@@ -43,5 +43,21 @@ size_t count_singularities(const Mesh& mesh)
   });
 }
 
+void copy_test(Mesh mesh)
+{
+  mesh.garbage_collection();
+  Mesh copy;
+  copy.reserve(mesh.n_vertices(), mesh.n_edges(), mesh.n_faces());
+  for (VertH vh : mesh.vertices()) {
+    copy.add_vertex(mesh.point(vh));
+  }
+  std::vector<VertH> fvs;
+  for (FaceH fh : mesh.faces()) {
+    fvs.clear();
+    std::copy(mesh.cfv_begin(fh), mesh.cfv_end(fh), std::back_inserter(fvs));
+    copy.add_face(fvs.data(), fvs.size());
+  }
+}
+
 }  // namespace debug
 }  // namespace quarrot

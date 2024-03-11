@@ -9,7 +9,7 @@
 
 using namespace quarrot;
 
-TEST_CASE("Debugging", "[debugging]")
+static void test_bimba()
 {
   std::filesystem::path fpath = "/home/rnjth94/buffer/parametrization/bimba.obj";
   Mesh                  mesh;
@@ -29,4 +29,19 @@ TEST_CASE("Debugging", "[debugging]")
   REQUIRE(OpenMesh::IO::write_mesh(
     mesh, "/home/rnjth94/buffer/parametrization/bimba_subdivided.obj"));
   simplify(mesh);
+}
+
+static void temp_tem()
+{
+  std::filesystem::path fpath =
+    "/home/rnjth94/buffer/parametrization/bimba_collapsed0.obj";
+  Mesh mesh;
+  REQUIRE(OpenMesh::IO::read_mesh(mesh, fpath.string()));
+  std::cout << "Simplifying '" << fpath << "'\n";
+  simplify(mesh);
+}
+
+TEST_CASE("Debugging", "[debugging]")
+{
+  test_bimba();
 }
