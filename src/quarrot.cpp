@@ -378,7 +378,6 @@ void simplify(Mesh& mesh)
   size_t count = 0;
   do {
     nchords = polychord_collapse(mesh, count);
-    // debug::copy_test(mesh);
     std::cout << "Iteration: " << count << "; Collapsed polychords: " << nchords
               << std::endl;
     std::string path =

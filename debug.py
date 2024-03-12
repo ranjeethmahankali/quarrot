@@ -2,7 +2,7 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-nfiles = 20
+nfiles = 11
 testpath = "/home/rnjth94/dev/quarrot/temp/"
 
 subd = pgf.loadPolyMesh(

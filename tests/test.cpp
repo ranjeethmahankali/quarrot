@@ -11,7 +11,7 @@ using namespace quarrot;
 
 static void test_bimba()
 {
-  std::filesystem::path fpath = "/home/rnjth94/dev/quarrot/temp/bunny.obj";
+  std::filesystem::path fpath = "/home/rnjth94/dev/quarrot/temp/bimba.obj";
   Mesh                  mesh;
   REQUIRE(OpenMesh::IO::read_mesh(mesh, fpath.string()));
   size_t before = mesh.n_faces();
