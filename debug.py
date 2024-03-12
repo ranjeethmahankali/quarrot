@@ -2,17 +2,16 @@
 import pygalfunc as pgf
 import pygalview as pgv
 
-nfiles = 19
+nfiles = 20
+testpath = "/home/rnjth94/dev/quarrot/temp/"
 
 subd = pgf.loadPolyMesh(
-    pgf.absPath(
-        pgf.var_string("/home/rnjth94/buffer/parametrization/subdivided.obj")))
+    pgf.absPath(pgf.var_string(testpath + "subdivided.obj")))
 pgv.show("subdivided", subd)
 
-paths = pgf.var_string([
-    f"/home/rnjth94/buffer/parametrization/collapsed{ci}.obj"
-    for ci in range(nfiles)
-])
+paths = pgf.var_string(
+    [testpath + f"collapsed{ci}.obj" for ci in range(nfiles)])
+
 collapsedList = pgf.loadPolyMesh(pgf.absPath(paths))
 pgv.print("Number of meshes", pgf.listLength(collapsedList))
 index = pgv.slideri32("Index", 0, nfiles - 1, 0)

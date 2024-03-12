@@ -310,7 +310,7 @@ void collapse_doublets(Mesh& mesh)
   do {
     numcollapsed = 0;
     for (VertH vh : mesh.vertices()) {
-      if (mesh.status(vh).deleted()) {
+      if (mesh.status(vh).deleted() || mesh.is_boundary(vh)) {
         continue;
       }
       if (std::distance(mesh.cvoh_begin(vh), mesh.cvoh_end(vh)) == 2) {
@@ -382,7 +382,7 @@ void simplify(Mesh& mesh)
     std::cout << "Iteration: " << count << "; Collapsed polychords: " << nchords
               << std::endl;
     std::string path =
-      "/home/rnjth94/buffer/parametrization/collapsed" + std::to_string(count) + ".obj";
+      "/home/rnjth94/dev/quarrot/temp/collapsed" + std::to_string(count) + ".obj";
     OpenMesh::IO::write_mesh(mesh, path);
     ++count;
   } while (nchords > 0 && count < 20);

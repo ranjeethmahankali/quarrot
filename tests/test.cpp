@@ -11,7 +11,7 @@ using namespace quarrot;
 
 static void test_bimba()
 {
-  std::filesystem::path fpath = "/home/rnjth94/buffer/parametrization/bunny.obj";
+  std::filesystem::path fpath = "/home/rnjth94/dev/quarrot/temp/bunny.obj";
   Mesh                  mesh;
   REQUIRE(OpenMesh::IO::read_mesh(mesh, fpath.string()));
   size_t before = mesh.n_faces();
@@ -20,14 +20,13 @@ static void test_bimba()
   pair_triangles(mesh, 0.1);
   std::cout << "After pairing: V " << mesh.n_vertices() << "; E " << mesh.n_edges()
             << "; F " << mesh.n_faces() << std::endl;
-  REQUIRE(
-    OpenMesh::IO::write_mesh(mesh, "/home/rnjth94/buffer/parametrization/paired.obj"));
+  REQUIRE(OpenMesh::IO::write_mesh(mesh, "/home/rnjth94/dev/quarrot/temp/paired.obj"));
   REQUIRE(mesh.n_faces() < before);
   subdivide(mesh);
   std::cout << "After subdivision: V " << mesh.n_vertices() << "; E " << mesh.n_edges()
             << "; F " << mesh.n_faces() << std::endl;
-  REQUIRE(OpenMesh::IO::write_mesh(
-    mesh, "/home/rnjth94/buffer/parametrization/subdivided.obj"));
+  REQUIRE(
+    OpenMesh::IO::write_mesh(mesh, "/home/rnjth94/dev/quarrot/temp/subdivided.obj"));
   simplify(mesh);
 }
 
