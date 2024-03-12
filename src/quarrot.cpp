@@ -310,6 +310,9 @@ void collapse_doublets(Mesh& mesh)
   do {
     numcollapsed = 0;
     for (VertH vh : mesh.vertices()) {
+      if (mesh.status(vh).deleted()) {
+        continue;
+      }
       if (std::distance(mesh.cvoh_begin(vh), mesh.cvoh_end(vh)) == 2) {
         std::array<HalfH, 2> hes;
         std::copy(mesh.cvoh_begin(vh), mesh.cvoh_end(vh), hes.begin());
@@ -358,8 +361,7 @@ size_t polychord_collapse(Mesh& mesh, size_t iter)
   size_t count = 0;
   size_t num_chords =
     std::count_if(chords.begin(), chords.end(), [&](const PolychordInfo& chord) {
-      bool result = try_collapse_polychord(mesh, chord.m_start_he, props.m_vert_quadrics);
-      return result;
+      return try_collapse_polychord(mesh, chord.m_start_he, props.m_vert_quadrics);
     });
   collapse_doublets(mesh);
   mesh.garbage_collection();
@@ -379,8 +381,8 @@ void simplify(Mesh& mesh)
     // debug::copy_test(mesh);
     std::cout << "Iteration: " << count << "; Collapsed polychords: " << nchords
               << std::endl;
-    std::string path = "/home/rnjth94/buffer/parametrization/bimba_collapsed" +
-                       std::to_string(count) + ".obj";
+    std::string path =
+      "/home/rnjth94/buffer/parametrization/collapsed" + std::to_string(count) + ".obj";
     OpenMesh::IO::write_mesh(mesh, path);
     ++count;
   } while (nchords > 0 && count < 20);
